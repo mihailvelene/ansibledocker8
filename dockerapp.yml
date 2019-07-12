@@ -1,0 +1,48 @@
+---
+#PREPARE
+- name: install docker and copy Dockerfile
+  hosts: ansible-slave9
+  become: yes
+
+  tasks:
+  - name: Install docker package
+    apt:
+      name: docker.io
+      state: present
+
+  - name: Synchronization of src on the inventory host to the dest on the localhost in pull mode
+    synchronize:
+      src: /app/dfile
+      dest: /app
+
+  - name: Install docker-py
+    apt:
+      name: python-docker
+      state: present
+
+#CONTAINER BUILD AND RUN
+- name: build and run
+  hosts: ansible-slave9
+  become: yes
+
+  tasks:
+  - name: Docker image build
+    docker_image:
+      name: myappimg
+      tag: mytag
+      nocache: yes
+      build:
+        dockerfile: Dockerfile
+        path: /app/dfile
+      state: present
+      source: build
+
+  - name: Docker container run
+    docker_container:
+      name: myappcont
+      image: myappimg:mytag
+      ports:
+       - "8080:8080"
+      restart_policy: on-failure
+      state: started
+...
